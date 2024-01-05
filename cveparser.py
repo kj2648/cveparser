@@ -148,18 +148,21 @@ def create_git_kernel_commits_from_master(out_dir):
 
 if __name__ == "__main__":
     runner = sys.argv[1]
-    if runner == "top":
-        create_top_25_cwe_cves_from_nvd_json(sys.argv[2])
-    elif runner == "cve":
+    if runner == "gen_top25":
+        input_dir = sys.argv[2]
+        cve_jsonpath = sys.argv[3]
+        create_top_25_cwe_cves_from_nvd_json(input_dir, cve_jsonpath)
+    elif runner == "gen_from_top25":
         cve_jsonpath = path.realpath(sys.argv[2])
         octopack_jsonpath = path.realpath(sys.argv[3])
         if cve_jsonpath == octopack_jsonpath:
             print("No way")
             exit()
         create_git_kernel_commits_from_cve_json(cve_jsonpath, octopack_jsonpath)
-    elif runner == "master":
-        create_git_kernel_commits_from_master(sys.argv[2])
+    elif runner == "gen_from_master":
+        out_dir = sys.argv[2]
+        create_git_kernel_commits_from_master(out_dir)
     else:
-        print("[Usage1] top {input_dir} {cve_jsonpath}")
-        print("[Usage2] cve {cve_jsonpath} {octopack_jsonpath}")
-        print("[Usage3] master {out_dir}")
+        print("[Usage1] gen_top25 {input_dir} {cve_jsonpath}")
+        print("[Usage2] gen_from_top25 {cve_jsonpath} {octopack_jsonpath}")
+        print("[Usage3] gen_from_master {out_dir}")

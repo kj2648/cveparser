@@ -6,7 +6,7 @@ import traceback
 from os import path
 from glob import glob
 from bs4 import BeautifulSoup
-# from pprint import pprint
+from pprint import pprint
 
 
 def parse_git_kernel_src(url) -> str:
@@ -146,6 +146,45 @@ def create_git_kernel_commits_from_master(out_dir):
             json.dump(ret, f, indent=2)
 
 
+def filter_octopack(input_dir, out_path):
+    total = dict()
+    commit_with_src = []
+    exts = dict()
+    dirs = dict()
+    for logpath in glob(path.join(input_dir, "*.log")):
+        with open(logpath) as f:
+            log_dicts = json.load(f)
+            for log_dict in log_dicts:
+                commit = log_dict["commit"]
+                total[commit] = log_dict
+
+    for commit, log_dict in total.items():
+        filepath = log_dict["old_file"] if log_dict["old_file"] else log_dict["new_file"]
+        re_dir = re.match(r"^(.+?)/", filepath)
+        dir = re_dir.group(1) if re_dir else ""
+        ext = path.splitext(filepath)[1]
+
+        if ext in [".c", ".h"]:
+            commit_with_src.append(commit)
+        else:
+            if not exts.get(ext):
+                exts[ext] = list()
+            exts[ext].append(commit)
+            continue
+        if not dirs.get(dir):
+            dirs[dir] = list()
+        dirs[dir].append(commit)
+
+    print(len(total), len(commit_with_src))
+    pprint([(k, len(v)) for k, v in exts.items()])
+    pprint([(k, len(v)) for k, v in dirs.items()])
+    with open(out_path, "w") as f:
+        out = [total[i] for i in commit_with_src]
+        import random
+        random.shuffle(out)
+        json.dump(out[:5000], f, indent=2)
+
+
 if __name__ == "__main__":
     runner = sys.argv[1]
     if runner == "gen_top25":
@@ -162,7 +201,12 @@ if __name__ == "__main__":
     elif runner == "gen_from_master":
         out_dir = sys.argv[2]
         create_git_kernel_commits_from_master(out_dir)
+    elif runner == "filter":
+        input_dir = sys.argv[2]
+        octopack_jsonpath = sys.argv[3]
+        filter_octopack(input_dir, octopack_jsonpath)
     else:
-        print("[Usage1] gen_top25 {input_dir} {cve_jsonpath}")
-        print("[Usage2] gen_from_top25 {cve_jsonpath} {octopack_jsonpath}")
-        print("[Usage3] gen_from_master {out_dir}")
+        print("[Usage] gen_top25 {input_dir} {cve_jsonpath}")
+        print("[Usage] gen_from_top25 {cve_jsonpath} {octopack_jsonpath}")
+        print("[Usage] gen_from_master {out_dir}")
+        print("[Usage] filter {input_dir} {octopack_jsonpath}")
